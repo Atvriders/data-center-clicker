@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/atvriders/data-center-clicker:latest
+    container_name: data-center-clicker
+    ports:
+      - "3010:3010"
+    restart: unless-stopped
