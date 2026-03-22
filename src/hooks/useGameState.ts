@@ -19,8 +19,8 @@ function recalcDpPerSecond(
   let globalMult = 1;
   for (const uid of upgrades) {
     const upg = UPGRADES.find((u) => u.id === uid);
-    if (upg && upg.effect.type === 'dpsMultiplier') {
-      globalMult *= upg.effect.value;
+    if (upg && upg.type === 'global_dps_multiplier') {
+      globalMult *= upg.value;
     }
   }
 
@@ -34,21 +34,13 @@ function recalcDpPerSecond(
       const upg = UPGRADES.find((u) => u.id === uid);
       if (
         upg &&
-        upg.effect.type === 'buildingMultiplier' &&
-        upg.effect.targetBuildingId === b.id
+        upg.type === 'building_dps_multiplier' &&
+        upg.targetBuildingId === b.id
       ) {
-        bMult *= upg.effect.value;
+        bMult *= upg.value;
       }
     }
     total += b.baseDps * count * bMult;
-  }
-
-  // Flat DPS bonuses from upgrades (non-incident)
-  for (const uid of upgrades) {
-    const upg = UPGRADES.find((u) => u.id === uid);
-    if (upg && upg.effect.type === 'flatDps') {
-      total += upg.effect.value;
-    }
   }
 
   return total * globalMult;
@@ -61,11 +53,11 @@ function recalcClick(upgrades: string[]): { dpPerClick: number; clickMultiplier:
   for (const uid of upgrades) {
     const upg = UPGRADES.find((u) => u.id === uid);
     if (!upg) continue;
-    if (upg.effect.type === 'clickMultiplier') {
-      clickMultiplier *= upg.effect.value;
+    if (upg.type === 'click_multiplier') {
+      clickMultiplier *= upg.value;
     }
-    if (upg.effect.type === 'flatClick') {
-      dpPerClick += upg.effect.value;
+    if (upg.type === 'click_flat') {
+      dpPerClick += upg.value;
     }
   }
 
@@ -115,7 +107,7 @@ export const useGameState = create<GameStore>((set, get) => ({
     set((s) => {
       // Incident click multiplier
       let incidentClickMult = 1;
-      if (s.activeIncident && s.activeIncident.effect.type === 'clickMultiplier') {
+      if (s.activeIncident && s.activeIncident.effect.type === 'click_multiplier') {
         incidentClickMult = s.activeIncident.effect.value;
       }
       const earned = s.dpPerClick * s.clickMultiplier * incidentClickMult;
@@ -179,14 +171,12 @@ export const useGameState = create<GameStore>((set, get) => ({
       // Apply incident effects to production
       if (s.activeIncident) {
         const { effect } = s.activeIncident;
-        if (effect.type === 'dpsHalt') {
+        if (effect.type === 'no_auto_generation') {
           production = 0;
-        } else if (effect.type === 'dpsMultiplier') {
+        } else if (effect.type === 'dps_multiplier') {
           production *= effect.value;
-        } else if (effect.type === 'dpsFlatBonus') {
-          production += effect.value * deltaSec;
         }
-        // clickMultiplier incidents are handled in click()
+        // click_multiplier incidents are handled in click()
       }
 
       if (production === 0) return s;

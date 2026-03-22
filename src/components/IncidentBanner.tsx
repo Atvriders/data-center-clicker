@@ -69,7 +69,7 @@ const IncidentBanner: React.FC = () => {
 
   if (!showBanner || !incidentDef) return null;
 
-  const isPositive = incidentDef.type === 'positive';
+  const isPositive = incidentDef.isPositive;
   const accentColor = isPositive ? '#00ff88' : '#ff4444';
   const bgColor = isPositive
     ? 'rgba(0,255,136,0.08)'

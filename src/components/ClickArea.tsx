@@ -25,8 +25,8 @@ const ClickArea: React.FC = () => {
 
   // Effective click value (including incident multiplier)
   const incidentClickMult =
-    activeIncident && activeIncident.effect.type === 'clickMultiplier'
-      ? activeIncident.effect.value
+    activeIncident?.effect?.type === 'click_multiplier'
+      ? (activeIncident.effect as { type: 'click_multiplier'; value: number }).value
       : 1;
   const effectiveClickValue = dpPerClick * clickMultiplier * incidentClickMult;
 

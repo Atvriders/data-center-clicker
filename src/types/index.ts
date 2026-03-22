@@ -2,21 +2,22 @@
 export type {
   Building,
   Upgrade,
-  UpgradeEffect,
-  UnlockCondition,
   Achievement,
+  AchievementCondition,
+  AchievementReward,
   Incident,
   IncidentEffect,
+  GameStats,
+  GameConfig,
 } from '../data/gameData';
+
+import type { IncidentEffect } from '../data/gameData';
 
 export interface ActiveIncident {
   id: string;
   endsAt: number;
   /** Effect copied from the Incident definition */
-  effect: {
-    type: 'dpsMultiplier' | 'clickMultiplier' | 'dpsFlatBonus' | 'dpsHalt';
-    value: number;
-  };
+  effect: IncidentEffect;
 }
 
 export interface GameState {

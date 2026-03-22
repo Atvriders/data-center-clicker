@@ -1,48 +1,24 @@
 import React, { useEffect, useMemo } from 'react';
-import { UPGRADES, formatNumber } from '../data/gameData';
+import { UPGRADES, formatNumber, isUpgradeAvailable } from '../data/gameData';
 import { useGameState } from '../hooks/useGameState';
 
 const UpgradePanel: React.FC = () => {
   const dp = useGameState((s) => s.dp);
   const purchasedList = useGameState((s) => s.upgrades);
-  const buildings = useGameState((s) => s.buildings);
-  const totalClicks = useGameState((s) => s.totalClicks);
-  const totalDpEarned = useGameState((s) => s.totalDpEarned);
   const buyUpgrade = useGameState((s) => s.buyUpgrade);
 
   const purchased = useMemo(() => new Set(purchasedList), [purchasedList]);
 
-  // Determine which upgrades are unlocked
-  const unlocked = useMemo(() => {
+  // Determine which upgrades are available (not purchased + prerequisites met)
+  const available = useMemo(() => {
     const set = new Set<string>();
     for (const u of UPGRADES) {
-      if (purchased.has(u.id)) continue;
-      if (!u.unlockCondition) {
+      if (isUpgradeAvailable(u, purchased)) {
         set.add(u.id);
-        continue;
       }
-      const cond = u.unlockCondition;
-      let met = false;
-      switch (cond.type) {
-        case 'totalClicks':
-          met = totalClicks >= cond.threshold;
-          break;
-        case 'totalDp':
-          met = totalDpEarned >= cond.threshold;
-          break;
-        case 'buildingCount':
-          if (cond.buildingId) {
-            met = (buildings[cond.buildingId] ?? 0) >= cond.threshold;
-          } else {
-            const total = Object.values(buildings).reduce((s, c) => s + c, 0);
-            met = total >= cond.threshold;
-          }
-          break;
-      }
-      if (met) set.add(u.id);
     }
     return set;
-  }, [purchased, totalClicks, totalDpEarned, buildings]);
+  }, [purchased]);
 
   useEffect(() => {
     if (document.getElementById('upgrade-panel-keyframes')) return;
@@ -70,7 +46,7 @@ const UpgradePanel: React.FC = () => {
   };
 
   const visible = UPGRADES.filter(
-    (u) => purchased.has(u.id) || unlocked.has(u.id)
+    (u) => purchased.has(u.id) || available.has(u.id)
   );
 
   if (visible.length === 0) {

@@ -128,7 +128,7 @@ const BuildingShop: React.FC = () => {
             onClick={() => canAfford && buyBuilding(b.id)}
             title={b.description}
           >
-            <div style={emojiStyle}>{b.emoji}</div>
+            <div style={emojiStyle}>{b.icon}</div>
             <div style={infoStyle}>
               <div style={nameRowStyle}>
                 <span style={nameStyle}>{b.name}</span>

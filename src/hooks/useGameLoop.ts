@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameState } from './useGameState';
-import { ACHIEVEMENTS, INCIDENTS } from '../data/gameData';
+import { ACHIEVEMENTS, INCIDENTS, BUILDINGS } from '../data/gameData';
 import type { ActiveIncident } from '../types';
 
 /** Minimum ms between incident triggers (30 s) */
@@ -98,29 +98,49 @@ export function useGameLoop(): { isRunning: boolean } {
 // ── Achievement checker ──
 
 function checkAchievements(state: ReturnType<typeof useGameState.getState>) {
-  const { achievements, totalClicks, totalDpEarned, dpPerSecond, buildings, upgrades } = state;
+  const { achievements, totalClicks, totalDpEarned, dpPerSecond, dpPerClick, buildings, upgrades } = state;
 
   for (const ach of ACHIEVEMENTS) {
     if (achievements.includes(ach.id)) continue;
 
-    const cond = ach.unlockCondition;
+    const cond = ach.condition;
     let met = false;
 
     switch (cond.type) {
-      case 'totalClicks':
-        met = totalClicks >= cond.threshold;
+      case 'total_clicks':
+        met = totalClicks >= cond.value;
         break;
-      case 'totalDp':
-        met = totalDpEarned >= cond.threshold;
+      case 'total_dp_earned':
+        met = totalDpEarned >= cond.value;
         break;
-      case 'buildingCount':
-        if (cond.buildingId) {
-          met = (buildings[cond.buildingId] ?? 0) >= cond.threshold;
-        } else {
-          // Total buildings across all types
-          const total = Object.values(buildings).reduce((sum, c) => sum + c, 0);
-          met = total >= cond.threshold;
-        }
+      case 'dp_per_second':
+        met = dpPerSecond >= cond.value;
+        break;
+      case 'dp_per_click':
+        met = dpPerClick >= cond.value;
+        break;
+      case 'building_owned':
+        met = (buildings[cond.buildingId] ?? 0) >= cond.count;
+        break;
+      case 'buildings_of_type':
+        met = (buildings[cond.buildingId] ?? 0) >= cond.count;
+        break;
+      case 'total_buildings': {
+        const total = Object.values(buildings).reduce((sum, c) => sum + c, 0);
+        met = total >= cond.value;
+        break;
+      }
+      case 'time_played_seconds': {
+        const elapsed = (Date.now() - state.startTime) / 1000;
+        met = elapsed >= cond.value;
+        break;
+      }
+      case 'own_all_building_types': {
+        met = BUILDINGS.every((b) => (buildings[b.id] ?? 0) > 0);
+        break;
+      }
+      case 'upgrade_purchased':
+        met = upgrades.includes(cond.upgradeId);
         break;
       default:
         break;
@@ -138,13 +158,33 @@ function triggerRandomIncident(state: ReturnType<typeof useGameState.getState>) 
   // Only trigger if there's some production (no incidents before first building)
   if (state.dpPerSecond <= 0 && state.totalClicks < 10) return;
 
-  const incident = INCIDENTS[Math.floor(Math.random() * INCIDENTS.length)];
+  // Filter eligible incidents based on minDps and required buildings
+  const eligible = INCIDENTS.filter((inc) => {
+    if (state.dpPerSecond < inc.minDps) return false;
+    if (inc.requiresBuildingId && !(state.buildings[inc.requiresBuildingId] > 0)) return false;
+    return true;
+  });
+
+  if (eligible.length === 0) return;
+
+  // Weighted random selection
+  const totalWeight = eligible.reduce((sum, inc) => sum + inc.weight, 0);
+  let roll = Math.random() * totalWeight;
+  let incident = eligible[0];
+  for (const inc of eligible) {
+    roll -= inc.weight;
+    if (roll <= 0) {
+      incident = inc;
+      break;
+    }
+  }
+
   const durationMs = incident.duration * 1000;
 
   const active: ActiveIncident = {
     id: incident.id,
     endsAt: Date.now() + durationMs,
-    effect: { ...incident.effect },
+    effect: incident.effect,
   };
 
   state.setIncident(active);
